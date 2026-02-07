@@ -24,7 +24,7 @@ from models import get_model
 from utils.training import train
 from utils.best_args import best_args
 from utils.conf import set_random_seed
-from self_supervised.utils import ContinualSSLModel
+# from self_supervised.utils import ContinualSSLModel
 
 def lecun_fix():
     # Yann moved his website to CloudFlare. You need this now
