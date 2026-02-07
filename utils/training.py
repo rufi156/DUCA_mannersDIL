@@ -15,6 +15,8 @@ from datasets.utils.continual_dataset import ContinualDataset
 from typing import Tuple
 from datasets import get_dataset
 from utils.auxiliary import AuxiliaryNet
+import torch.nn.functional as F
+
 
 def save_task_perf(savepath, results, n_tasks):
 
@@ -40,8 +42,20 @@ def mask_classes(outputs: torch.Tensor, dataset: ContinualDataset, k: int) -> No
     outputs[:, (k + 1) * dataset.N_CLASSES_PER_TASK:
                dataset.N_TASKS * dataset.N_CLASSES_PER_TASK] = -float('inf')
 
+def evaluate(model: ContinualModel, dataset: ContinualDataset,
+             last: bool = False, model_name: str = 'net') -> Tuple[list, list]:
+    """
+    Wrapper that calls either classification or regression evaluation,
+    depending on the dataset.
+    """
+    is_regression = getattr(dataset, "NAME", "") == "custom-hdf5-regression"
+    if is_regression:
+        return evaluate_regression(model, dataset, last=last, model_name=model_name)
+    else:
+        return evaluate_classification(model, dataset, last=last, model_name=model_name)
+    
 
-def evaluate(model: ContinualModel, dataset: ContinualDataset, last=False, model_name='net') -> Tuple[list, list]:
+def evaluate_classification(model: ContinualModel, dataset: ContinualDataset, last=False, model_name='net') -> Tuple[list, list]:
     """
     Evaluates the accuracy of the model for each past task.
     :param model: the model to be evaluated
@@ -94,6 +108,59 @@ def evaluate(model: ContinualModel, dataset: ContinualDataset, last=False, model
     curr_model.train(status)
 
     return accs, accs_mask_classes
+
+
+def evaluate_regression(model: ContinualModel, dataset: ContinualDataset,
+             last: bool = False, model_name: str = 'net') -> Tuple[list, list]:
+    """
+    For regression: returns a list of per-task MSEs (lower is better).
+    The second list (accs_mask_classes) is unused for domain-il regression and set to zeros.
+    """
+    aux_attrs = ['net2', 'ema_net2']  # for shape data only
+    curr_model = getattr(model, model_name)
+    status = curr_model.training
+    curr_model.eval()
+
+    mse_list, dummy_mask_list = [], []
+
+    for k, test_loader in enumerate(dataset.test_loaders):
+        if last and k < len(dataset.test_loaders) - 1:
+            continue
+
+        mse_sum = 0.0
+        n_elems = 0
+
+        for data in test_loader:
+            inputs, labels = data
+            inputs, labels = inputs.to(model.device), labels.to(model.device)
+
+            if model_name in aux_attrs:
+                inputs = model.aux.get_data(inputs)
+
+            # DUCA does not use task label for domain-il,
+            # but keep the conditional structure unchanged:
+            if 'class-il' not in model.COMPATIBILITY:
+                outputs = curr_model(inputs, k)
+            else:
+                outputs = curr_model(inputs)
+
+            # labels: [B, 9], outputs: [B, 9]
+            # accumulate sum of squared errors
+            mse_sum += F.mse_loss(outputs, labels, reduction='sum').item()
+            n_elems += labels.numel()
+
+        mse = mse_sum / n_elems
+        print(f'Task {k} MSE: {mse:.4f}')
+
+        # first list is what downstream code uses (formerly "accuracy")
+        mse_list.append(mse)
+
+        # second list is only meaningful for class-il; keep zeros for API
+        dummy_mask_list.append(0.0)
+
+    curr_model.train(status)
+    return mse_list, dummy_mask_list
+
 
 
 def train(model: ContinualModel, dataset: ContinualDataset,
