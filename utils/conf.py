@@ -25,7 +25,7 @@ def base_path_img() -> str:
     Returns the base bath where to log accuracies and tensorboard data.
     """
     # return '/input/'
-    return '/data/input-ai/datasets/'
+    return 'D:/projects/socialsense/data/'
 
 
 def set_random_seed(seed: int) -> None:

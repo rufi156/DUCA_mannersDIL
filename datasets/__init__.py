@@ -15,6 +15,7 @@ from datasets.seq_tinyimagenet import SequentialTinyImagenet
 from datasets.mnist_360 import MNIST360
 from datasets.utils.continual_dataset import ContinualDataset
 from datasets.seq_cifar10_mixed import SequentialCIFAR10Mix
+from datasets.custom_hdf5_regression import CustomHDF5Regression
 from argparse import Namespace
 
 NAMES = {
@@ -29,6 +30,7 @@ NAMES = {
     DN4IL.NAME: DN4IL,
     GCILCIFAR100.NAME: GCILCIFAR100,
     SequentialCIFAR10Mix.NAME: SequentialCIFAR10Mix,
+    CustomHDF5Regression.NAME: CustomHDF5Regression,
 }
 
 GCL_NAMES = {
