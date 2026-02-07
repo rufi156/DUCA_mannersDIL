@@ -21,6 +21,21 @@ class AuxiliaryNet():
         self.normalize = transforms.Normalize(mean=self.dataset.MEAN, std=self.dataset.STD)
 
     def get_aux_transform(self):
+        if self.args.dataset == 'custom-hdf5-regression':
+        # HDF5 images are already ImageNet-normalized; undo that for Sobel
+            denorm = self.dataset.get_denormalization_transform()
+
+            transform = [
+                denorm,  # x = x * std + mean
+                transforms.ToPILImage(),
+                transform_sobel_edge(self.args, self.args.shape_upsample_size, self.args.aug_prob),
+                transforms.Resize((64, 64)),
+                transforms.ToTensor(),
+            ]
+            if self.args.aug_norm:
+                # If you want aux inputs normalized again, keep this; otherwise omit.
+                transform.append(self.normalize)
+            return transforms.Compose(transform)
 
         if self.args.dataset == 'domain-net':
             transform = [transforms.ToPILImage(),
