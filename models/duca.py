@@ -12,6 +12,7 @@ from utils.args import *
 from utils.auxiliary import *
 from models.utils.continual_model import ContinualModel
 import torchvision.transforms as transforms
+import torch.nn.functional as F
 
 def get_parser() -> ArgumentParser:
     parser = ArgumentParser(description='Continual learning via'
@@ -97,15 +98,15 @@ class DUCA(ContinualModel):
                     self.args.minibatch_size, transform=self.aux.transform)
                 buf_outputs1 = self.net(buf_inputs1)
                 buf_outputs2 = self.net2(buf_inputs2)
-                loss_buf_ce1 = self.loss(buf_outputs1, buf_labels)
-                loss_buf_ce2 = self.loss(buf_outputs2, buf_labels)
+                loss_buf_ce1 = self.loss(buf_outputs1, buf_labels.float())
+                loss_buf_ce2 = self.loss(buf_outputs2, buf_labels.float())
                 loss1 += self.args.beta_mm[0] * loss_buf_ce1
                 loss2 += self.args.beta_mm[1] * loss_buf_ce2
 
         outputs1 = self.net(inputs)
         outputs2 = self.net2(inputs_aux)
-        loss_ce1 = self.loss(outputs1, labels)
-        loss_ce2 = self.loss(outputs2, labels)
+        loss_ce1 = self.loss(outputs1, labels.float())
+        loss_ce2 = self.loss(outputs2, labels.float())
         loss1 += loss_ce1
         loss2 += loss_ce2
 
