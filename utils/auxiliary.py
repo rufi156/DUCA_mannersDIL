@@ -29,7 +29,7 @@ class AuxiliaryNet():
                 denorm,  # x = x * std + mean
                 transforms.ToPILImage(),
                 transform_sobel_edge(self.args, self.args.shape_upsample_size, self.args.aug_prob),
-                transforms.Resize((64, 64)),
+                transforms.Resize((90,160)),
                 transforms.ToTensor(),
             ]
             if self.args.aug_norm:

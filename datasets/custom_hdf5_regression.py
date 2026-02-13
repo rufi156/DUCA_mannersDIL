@@ -84,7 +84,7 @@ class HDF5CLDataset(Dataset):
         labels_np = labels_ds[idx]      # shape (9,)
         labels = torch.tensor(labels_np, dtype=torch.float32)
 
-        if self.split == "test":
+        if self.split == "val":
             # match DN4IL test loader: (img, label)
             return img, labels
         else:
@@ -123,11 +123,11 @@ class CustomHDF5Regression(ContinualDataset):
         self.args = args
 
         # No in-graph transforms: HDF5 is already resized + normalized.
-        resize_64 = transforms.Resize((self.IMG_SIZE, self.IMG_SIZE))
-        self.TRANSFORM = [resize_64]
-        self.TRANSFORM_NORM = [resize_64]
-        self.TRANSFORM_TEST = [resize_64]
-        self.NOT_AUG_TRANSFORM = [resize_64]
+        resize = transforms.Resize((90,160))#108,192
+        self.TRANSFORM = [resize]
+        self.TRANSFORM_NORM = [resize]
+        self.TRANSFORM_TEST = [resize]
+        self.NOT_AUG_TRANSFORM = [resize]
         
 
         data_path = base_path_img()   # analogous to base_path_img()
@@ -164,7 +164,7 @@ class CustomHDF5Regression(ContinualDataset):
         test_dataset = HDF5CLDataset(
             hdf5_path=self.hdf5_path,
             domain=current_domain,
-            split="test",
+            split="val",
             img_variant="image_path",
             transform=test_transform,
             not_aug_transform=None
