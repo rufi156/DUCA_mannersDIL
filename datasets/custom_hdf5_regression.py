@@ -8,7 +8,7 @@ from torchvision import transforms
 import torch.nn as nn
 
 from datasets.utils.continual_dataset import ContinualDataset, store_domain_loaders
-from backbone.ResNet18 import resnet18
+from torchvision.models import mobilenet_v2, MobileNet_V2_Weights
 from utils.conf import base_path_img
 from datasets.transforms.denormalization import DeNormalize  # for visualization only
 
@@ -131,7 +131,10 @@ class CustomHDF5Regression(ContinualDataset):
         
 
         data_path = base_path_img()   # analogous to base_path_img()
-        self.hdf5_path = os.path.join(data_path, "mean_data_pepper_fold0.hdf5")
+        exp_id = self.args.experiment_id
+        dataset_fold_suffix = exp_id.split("_")[-1]
+        dataset_fold_suffix = '_'+dataset_fold_suffix if 'fold' in dataset_fold_suffix else ''
+        self.hdf5_path = os.path.join(data_path, f"mean_data_pepper{dataset_fold_suffix}.hdf5")
 
     def get_data_loaders(self):
         """
@@ -176,8 +179,10 @@ class CustomHDF5Regression(ContinualDataset):
 
     @staticmethod
     def get_backbone():
-        # 9 regression outputs
-        return resnet18(9)
+        base = mobilenet_v2(weights=MobileNet_V2_Weights.IMAGENET1K_V1) # enforced num_classes=1000 internally
+        in_dim = base.classifier[1].in_features
+        base.classifier[1] = nn.Linear(in_dim, 9)
+        return base
 
     def get_transform(self):
         # identity; data already normalized in HDF5
